@@ -6,32 +6,30 @@ These algorithms are especially useful in a parallel context as usually found in
 
 Eventually hardware vectorization of the PRNGs are considered.
 
-ATTENTION: This library does not provide cryprographically secure random number generators.
+ATTENTION: This library does not provide cryptographically secure random number generators.
 
-WARNING: This library is under heavy development! Usage at own risk!
+WARNING: This library is under heavy development! Use at own risk!
 
 ### Structure
-The generartors follow an compiletime-parametrized-engine approch which has been inspired by the random number generators as defined by the C++ standard.
+In contrast to the classic object oriented approach this library tries to reduce runtime resolutions and thus does not make use of methods.
+
+Instead the different generators are covered by a concept, which requires a generator to provide procedures to set the seed, get the minimal, maximal and next random number and to jump ahead in the generator state.
+This concept makes it easy to pass different generators to e.g. a single procedure.
+
+The actual generators are defined using factory templates per generator kind.
+Aside of the generic creation of different generators of one kind, this approach promises some compile time optimization like parameter substitution.
 
 ## planned PRNGs
-- [ ] RNG base object
+- [ ] RNG base concept
 - [ ] CBRNGs (counter based)
-  - [ ] Philox
-    - [ ] 4x32_10
-    - [ ] ...
+  - [x] Philox
   - [ ] Threefry
-    - [ ] 4x32_70
-    - [ ] ...
 - [ ] Mersenne Twister
   - [ ] mt19937
 - [ ] WELL
-  - [ ] ...
 - [ ] LCG
-  - [ ] ...
   - [ ] fib-lagged
   - [ ] shuffled
 - [ ] PCG
-  - [ ] ...
 - [ ] L'Ecuyer CMRG
 - [ ] Xorshift-family
-  - [ ] ...
