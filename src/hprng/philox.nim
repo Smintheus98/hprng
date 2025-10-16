@@ -71,12 +71,15 @@ template makePhiloxType*(
       ): untyped =
   ## Template factory to generate Philox generator types.
   # Inject/gensym pragmas are used explicitly here for clarification!
+
+  # ***** Constructed type *****
   type rngTypeName* {.inject.} = object
     ## Philox generator type.
     counter, output_buffer: array[n_words, U]
     key: array[n_words div 2, U]
     output_it: uint8
 
+  # ***** Internal procedures *****
   proc bumpKey(key: array[n_words div 2, U]): array[n_words div 2, U] {.gensym, inline.} =
     for i in 0..<key.len: # TODO: unroll
       result[i] = key[i] + round_consts[i]
@@ -98,6 +101,34 @@ template makePhiloxType*(
     ctr = iterateState(ctr, key)
     rng.output_buffer = ctr
 
+  proc incCtr[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym.} =
+    ## Increment internal counter by `n`, resulting in a jump of `n`*`n_words` output values
+    const u_bit_width = U.sizeof * 8
+    if n == 0:
+      return
+    elif V.sizeof > U.sizeof and (n shr u_bit_width > 0):
+      # careful increment
+      var n = n
+      for i in 0..<n_words: # TODO: unroll
+        rng.counter[i].inc n.U
+        if unlikely(rng.counter[i] < n.U):
+          n += 1.V shl u_bit_width
+        n = n shr u_bit_width
+        if n == 0:
+          break
+    else:
+      # straight forward increment
+      rng.counter[0].inc n.U
+      for i in 0..<n_words.pred: # TODO: unroll
+        if likely(rng.counter[i] != 0.U):
+          break
+        rng.counter[i.succ].inc  # under the checked conditions the carry can not be bigger than 1
+
+  proc incCtrAndGenOutput[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym.} =
+    incCtr(rng, n)
+    genOutputBuffer(rng)
+
+  # ***** Exported procedures *****
   proc init*(rng: var rngTypeName; seed: array[n_words div 2, U]; state: array[n_words, U]) {.inject.} =
     rng.counter = state
     rng.key = seed
@@ -134,33 +165,6 @@ template makePhiloxType*(
   proc max*(rng: rngTypeName): U {.inject, inline.} =
     ## Minimal possible generated random number.
     return U.high
-
-  proc incCtr[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym.} =
-    ## Increment internal counter by `n`, resulting in a jump of `n`*`n_words` output values
-    const u_bit_width = U.sizeof * 8
-    if n == 0:
-      return
-    elif V.sizeof > U.sizeof and (n shr u_bit_width > 0):
-      # careful increment
-      var n = n
-      for i in 0..<n_words: # TODO: unroll
-        rng.counter[i].inc n.U
-        if unlikely(rng.counter[i] < n.U):
-          n += 1.V shl u_bit_width
-        n = n shr u_bit_width
-        if n == 0:
-          break
-    else:
-      # straight forward increment
-      rng.counter[0].inc n.U
-      for i in 0..<n_words.pred: # TODO: unroll
-        if likely(rng.counter[i] != 0.U):
-          break
-        rng.counter[i.succ].inc  # under the checked conditions the carry can not be bigger than 1
-
-  proc incCtrAndGenOutput[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym.} =
-    incCtr(rng, n)
-    genOutputBuffer(rng)
 
   proc next*(rng: var rngTypeName): U {.inject.} =
     ## Return next random number.
