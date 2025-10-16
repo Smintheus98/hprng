@@ -44,6 +44,7 @@ proc manualMul*[U: SomeUnsignedInt](a, b: U): LoHiUint[U] =
   ## This implementation operates on pure Nim, which reduces dependency constraints, but on the
   ## counter side is also a bit slower than bindings to native solutions like the common, yet not
   ## standard, uint128 C-compiler extension.
+  # TODO: optimize!
   const
     halfBits = U.sizeof #[ div 2 * 8 ]# * 4
     mask_lo: U = (1.U shl halfBits) - 1
@@ -142,12 +143,14 @@ template makePhiloxType*(
     ## The `key` is used as seed
     rng.key = key
     genOutputBuffer(rng)
+    rng.output_it = 0
 
   proc counter*(rng: var rngTypeName, ctr: array[n_words, U]) {.inject.} =
     ## Counter setter.
     ## The counter represents the internal state.
     rng.counter = ctr
     genOutputBuffer(rng)
+    rng.output_it = 0
 
   proc seed*(rng: var rngTypeName, seeds: varargs[U]) {.inject.} =
     ## Type generic seed setter.
@@ -155,8 +158,8 @@ template makePhiloxType*(
     rng.key = rng.key.typeof.default
     for i in 0..<min(rng.key.len, seeds.len):
       rng.key[i] = seeds[i]
-
     genOutputBuffer(rng)
+    rng.output_it = 0
 
   proc min*(rng: rngTypeName): U {.inject, inline.} =
     ## Minimal possible generated random number.
