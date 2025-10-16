@@ -112,10 +112,10 @@ template makePhiloxType*(
     rng.key = key
     genOutputBuffer(rng)
 
-  proc state*(rng: var rngTypeName, state: array[n_words, U]) {.inject.} =
-    ## State setter.
-    ## The state is the internal `counter`.
-    rng.counter = state
+  proc counter*(rng: var rngTypeName, ctr: array[n_words, U]) {.inject.} =
+    ## Counter setter.
+    ## The counter represents the internal state.
+    rng.counter = ctr
     genOutputBuffer(rng)
 
   proc seed*(rng: var rngTypeName, seeds: varargs[U]) {.inject.} =
