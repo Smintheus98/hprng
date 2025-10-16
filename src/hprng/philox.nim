@@ -131,14 +131,6 @@ template makePhiloxType*(
     genOutputBuffer(rng)
 
   # ***** Exported procedures *****
-  proc init*(rng: var rngTypeName; seed: array[n_words div 2, U]; state: array[n_words, U]) {.inject.} =
-    rng.counter = state
-    rng.key = seed
-    genOutputBuffer(rng)
-
-  proc `init rngTypeName`*(seed = array[n_words div 2, U].default, state = array[n_words, U].default): rngTypeName {.inject.} =
-    result.init(seed, state)
-
   proc key*(rng: var rngTypeName; key: array[n_words div 2, U]) {.inject.} =
     ## Key setter.
     ## The `key` is used as seed
@@ -185,6 +177,12 @@ template makePhiloxType*(
     if increment > 0:
       incCtrAndGenOutput(rng, increment)
     rng.output_it = ((n + rng.output_it.P) mod n_words).uint8
+
+  proc init*(rng: var rngTypeName; seed: varargs[U]) {.inject.} =
+    rng.seed(seed)
+
+  proc `init rngTypeName`*(seed: varargs[U]): rngTypeName {.inject.} =
+    result.init(seed)
 
 
 makePhiloxType(Philox2x32_10, uint32, 2, 10, [0xD256D193'u32                                ], [0x9E3779B9'u32                                ], standardMul[uint32, uint])
