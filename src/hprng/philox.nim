@@ -44,16 +44,15 @@ proc manualMul*[U: SomeUnsignedInt](a, b: U): LoHiUint[U] =
   ## This implementation operates on pure Nim, which reduces dependency constraints, but on the
   ## counter side is also a bit slower than bindings to native solutions like the common, yet not
   ## standard, uint128 C-compiler extension.
-  # TODO: optimize!
+  # TODO: optimize?
   const
-    halfBits = U.sizeof #[ div 2 * 8 ]# * 4
+    halfBits = U.sizeof div 2 * 8
     mask_lo: U = (1.U shl halfBits) - 1
-    mask_hi: U = not mask_lo
   let
-    a_lo =  a and mask_lo
-    a_hi = (a and mask_hi) shr halfBits
-    b_lo =  b and mask_lo
-    b_hi = (b and mask_hi) shr halfBits
+    a_hi = a shr halfBits
+    a_lo = a and mask_lo
+    b_hi = b shr halfBits
+    b_lo = b and mask_lo
     prod_hh = a_hi * b_hi
     prod_hl = a_hi * b_lo
     prod_lh = a_lo * b_hi
