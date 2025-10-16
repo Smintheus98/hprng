@@ -131,19 +131,21 @@ template makePhiloxType*(
     genOutputBuffer(rng)
 
   # ***** Exported procedures *****
-  proc key*(rng: var rngTypeName; key: array[n_words div 2, U]) {.inject.} =
+  proc key*(rng: var rngTypeName; key: array[n_words div 2, U]; resetOutputIt = true) {.inject.} =
     ## Key setter.
     ## The `key` is used as seed.
     rng.key = key
     genOutputBuffer(rng)
-    rng.output_it = 0
+    if resetOutputIt:
+      rng.output_it = 0
 
-  proc counter*(rng: var rngTypeName; ctr: array[n_words, U]) {.inject.} =
+  proc counter*(rng: var rngTypeName; ctr: array[n_words, U]; resetOutputIt = true) {.inject.} =
     ## Counter setter.
     ## The counter represents the internal state.
     rng.counter = ctr
     genOutputBuffer(rng)
-    rng.output_it = 0
+    if resetOutputIt:
+      rng.output_it = 0
 
   proc offset*(rng: var rngTypeName; offset: range[0..n_words] = 0) {.inject.} =
     ## Output buffer offset setter.
@@ -151,14 +153,15 @@ template makePhiloxType*(
     ## For most use cases `jump()` is to be prefered!
     rng.output_it = offset.uint8
 
-  proc seed*(rng: var rngTypeName; seeds: varargs[U]) {.inject.} =
+  proc seed*(rng: var rngTypeName; seeds: varargs[U]; resetOutputIt = true) {.inject.} =
     ## Type generic seed setter.
     ## Internaly `key` is used as seed.
     rng.key = rng.key.typeof.default
     for i in 0..<min(rng.key.len, seeds.len):
       rng.key[i] = seeds[i]
     genOutputBuffer(rng)
-    rng.output_it = 0
+    if resetOutputIt:
+      rng.output_it = 0
 
   proc min*(rng: rngTypeName): U {.inject, inline.} =
     ## Minimal possible generated random number.
