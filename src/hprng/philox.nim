@@ -1,3 +1,18 @@
+# ******************************************************************************
+# Copyright (c) 2025, Yannic Kitten
+#
+# This project is licensed under BSD 3-Clause License.
+# See the file "LICENSE", included in this distribution, for more details on
+# licensing and copyright.
+# ******************************************************************************
+
+##
+## hprng - philox random number generator
+##
+## This implementation was based on the Random123 library which can be found at
+## https://random123.com/, respectively https://github.com/DEShawResearch/random123
+##
+
 import private/utils
 
 type LoHiUint*[U: SomeUnsignedInt] = tuple
