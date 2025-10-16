@@ -120,10 +120,12 @@ template makePhiloxType*(
     else:
       # straight forward increment
       rng.counter[0].inc n.U
-      for i in 0..<n_words.pred: # TODO: unroll
+      if likely(rng.counter[0] >= n.U):
+        return
+      for i in 1..<n_words: # TODO: unroll
+        rng.counter[i].inc  # under the checked conditions the carry can not be bigger than 1
         if likely(rng.counter[i] != 0.U):
           break
-        rng.counter[i.succ].inc  # under the checked conditions the carry can not be bigger than 1
 
   proc incCtrAndGenOutput[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym.} =
     incCtr(rng, n)
@@ -179,6 +181,7 @@ template makePhiloxType*(
 
   proc jump*[P: Positive](rng: var rngTypeName; n: P) {.inject.} =
     ## Jump ahead by `n` values in the current random number stream.
+    # TODO: fix instabilities
     let increment = ((n + rng.output_it.P) div n_words).uint
     if increment > 0:
       incCtrAndGenOutput(rng, increment)
