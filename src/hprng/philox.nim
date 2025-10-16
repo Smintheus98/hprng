@@ -139,21 +139,21 @@ template makePhiloxType*(
   proc `init rngTypeName`*(seed = array[n_words div 2, U].default, state = array[n_words, U].default): rngTypeName {.inject.} =
     result.init(seed, state)
 
-  proc key*(rng: var rngTypeName, key: array[n_words div 2, U]) {.inject.} =
+  proc key*(rng: var rngTypeName; key: array[n_words div 2, U]) {.inject.} =
     ## Key setter.
     ## The `key` is used as seed
     rng.key = key
     genOutputBuffer(rng)
     rng.output_it = 0
 
-  proc counter*(rng: var rngTypeName, ctr: array[n_words, U]) {.inject.} =
+  proc counter*(rng: var rngTypeName; ctr: array[n_words, U]) {.inject.} =
     ## Counter setter.
     ## The counter represents the internal state.
     rng.counter = ctr
     genOutputBuffer(rng)
     rng.output_it = 0
 
-  proc seed*(rng: var rngTypeName, seeds: varargs[U]) {.inject.} =
+  proc seed*(rng: var rngTypeName; seeds: varargs[U]) {.inject.} =
     ## Type generic seed setter.
     ## Internaly `key` is used as seed.
     rng.key = rng.key.typeof.default
