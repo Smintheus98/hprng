@@ -133,7 +133,7 @@ template makePhiloxType*(
   # ***** Exported procedures *****
   proc key*(rng: var rngTypeName; key: array[n_words div 2, U]) {.inject.} =
     ## Key setter.
-    ## The `key` is used as seed
+    ## The `key` is used as seed.
     rng.key = key
     genOutputBuffer(rng)
     rng.output_it = 0
@@ -144,6 +144,12 @@ template makePhiloxType*(
     rng.counter = ctr
     genOutputBuffer(rng)
     rng.output_it = 0
+
+  proc offset*(rng: var rngTypeName; offset: range[0..n_words] = 0) {.inject.} =
+    ## Output buffer offset setter.
+    ## The offset is assigned to the `output_it` attribute which iterates over the output buffer.
+    ## For most use cases `jump()` is to be prefered!
+    rng.output_it = offset.uint8
 
   proc seed*(rng: var rngTypeName; seeds: varargs[U]) {.inject.} =
     ## Type generic seed setter.
