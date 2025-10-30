@@ -1,3 +1,18 @@
+# ******************************************************************************
+# Copyright (c) 2025, Yannic Kitten
+#
+# This project is licensed under BSD 3-Clause License.
+# See the file "LICENSE", included in this distribution, for more details on
+# licensing and copyright.
+# ******************************************************************************
+
+##
+## hprng/tests - tests for philox random number generator
+##
+## For validation of the output the original C++ implementation of Random123 has been used.
+## See: https://random123.com/ and https://github.com/DEShawResearch/random123
+##
+
 import std / unittest
 import std / [strutils, strformat, sequtils]
 
