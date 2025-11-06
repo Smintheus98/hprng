@@ -27,7 +27,7 @@ proc standardMul*[U: SomeUnsignedInt; U2: SomeUnsignedInt](a, b: U): LoHiUint[U]
   ## The `U2` type is required to have at least double the size as `U`
   static: assert U2.sizeof >= 2 * U.sizeof
   const
-    u_size = U.sizeof * 8
+    u_size = U.n_bits
     u_mask: U2 = U.high
   let prod: U2 = a.U2 * b.U2
   (lo: (prod and u_mask).U, hi: (prod shr u_size).U)
@@ -46,7 +46,7 @@ proc manualMul*[U: SomeUnsignedInt](a, b: U): LoHiUint[U] =
   ## standard, uint128 C-compiler extension.
   # TODO: optimize?
   const
-    halfBits = U.sizeof div 2 * 8
+    halfBits = U.n_bits div 2
     mask_lo: U = (1.U shl halfBits) - 1
   let
     a_hi = a shr halfBits
@@ -103,7 +103,7 @@ template makePhiloxType*(
 
   proc incCtr[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym.} =
     ## Increment internal counter by `n`, resulting in a jump of `n`*`n_words` output values
-    const u_bit_width = U.sizeof * 8
+    const u_bit_width = U.n_bits
     if n == 0:
       return
     elif V.sizeof > U.sizeof and (n shr u_bit_width > 0):
