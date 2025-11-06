@@ -14,8 +14,7 @@
 ## procedure.
 ##
 
-template n_bits(x: typedesc): int = x.sizeof * 8
-template n_bits[T](x: T): int = x.sizeof * 8
+import utils
 
 template makeArbitrary2xUint*(arbuint: untyped; U: typedesc[SomeUnsignedInt]): untyped =
   # This template constructs an unsigned integer type consisting of an array of 2 `U`-type values.
@@ -26,6 +25,9 @@ template makeArbitrary2xUint*(arbuint: untyped; U: typedesc[SomeUnsignedInt]): u
 
   converter `to arbuint`*(u: SomeUnsignedInt): arbuint =
     arbuint(data: [u.U, (u shr U.n_bits).U])
+
+  converter toU*(u: arbuint): U =
+    u.data[0]
 
   proc lo*(u: arbuint): U = u.data[0]
   proc lo*(u: var arbuint): var U = u.data[0]
@@ -95,7 +97,7 @@ template makeArbitrary2xUint*(arbuint: untyped; U: typedesc[SomeUnsignedInt]): u
     let carry = if result.lo > a.lo: 1.U else: 0.U
     result.hi = a.hi - b.hi - carry
 
-  proc mul*(a, b: U): arbuint =
+  proc `extended U mul`*(a, b: U): arbuint =
     const
       halfBits = U.n_bits div 2
       mask_lo: U = (1.U shl halfBits) - 1
@@ -113,7 +115,14 @@ template makeArbitrary2xUint*(arbuint: untyped; U: typedesc[SomeUnsignedInt]): u
     result.hi = prod_hh + (prod_hl shr halfBits) + (prod_lh shr halfBits) + carry
 
   proc lomul*(a, b: arbuint): arbuint =
-    mul(a.lo, b.lo)
+    `extended U mul`(a.lo, b.lo)
+
+  proc `*`*(a, b: arbuint): arbuint =
+    let
+      prod_hl_lo: U = a.hi * b.lo
+      prod_lh_lo: U = a.lo * b.hi
+    result = `extended U mul`(a.lo, b.lo)
+    result.hi += prod_hl_lo + prod_lh_lo
 
   proc divmod*(a, b: arbuint): tuple[quotient: arbuint, remainder: arbuint] =
     assert b != 0
