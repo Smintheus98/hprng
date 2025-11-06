@@ -106,7 +106,7 @@ suite "Test uint2x8 arbitrary integer type":
 
   test "low multiplication":
     check:
-      mul(a.lo, b.lo) == a16.lo * b16.lo
+      extended_uint8_mul(a.lo, b.lo) == a16.lo * b16.lo
       lomul(a, b) == a16.lo * b16.lo
       lomul(b, a) == a16.lo * b16.lo
     for i in 0..<U2.n_bits:
@@ -116,6 +116,19 @@ suite "Test uint2x8 arbitrary integer type":
           lomul(a shl i, b shr j) == lo(a16 shl i) * lo(b16 shr j)
           lomul(a shr i, b shl j) == lo(a16 shr i) * lo(b16 shl j)
           lomul(a shr i, b shr j) == lo(a16 shr i) * lo(b16 shr j)
+
+  test "full multiplication":
+    check:
+      a * b == a16 * b16
+      a * b.lo == (a16 * b16.lo).uint2x8
+      b * a == b16 * a16
+    for i in 0..<U2.n_bits:
+      for j in 0..<U2.n_bits:
+        check:
+          (a shl i) * (b shl j) == (a16 shl i) * (b16 shl j)
+          (a shl i) * (b shr j) == (a16 shl i) * (b16 shr j)
+          (a shr i) * (b shl j) == (a16 shr i) * (b16 shl j)
+          (a shr i) * (b shr j) == (a16 shr i) * (b16 shr j)
 
   test "div(/)mod":
     check:
