@@ -18,6 +18,10 @@
 ## :math:`x_{n+1}` on each iteration.
 ##
 
+import std / options
+import pkg / bigints
+import private / utils
+
 template makeLinearCongruentialGenerator*(
       rngTypeName: untyped;
       U: typedesc[SomeUnsignedInt];
@@ -55,37 +59,54 @@ template makeLinearCongruentialGenerator*(
 
   proc modulo_op(x: U): U {.gensym, inline.} =
     ## Optimized modulo operation.
-    when modulus_is_power_of_2 and modulus == U.sizeof * 8:
+    when modulus_is_power_of_2 and modulus == U.n_bits:
       return x
-    elif modulus_is_power_of_2 and modulus < U.sizeof * 8:
+    elif modulus_is_power_of_2 and modulus < U.n_bits:
       return x and ((1.U shl modulus) - 1)
     else:
       return x mod modulus
 
-  #[ # There are some issues left, (actual or emulated) 128-bit arithmetic can solve
-  proc modpow(b, e, m: U): U =
-    ## calculate (b ^ e) mod m
-    discard
+  #[ # already slightly optimized version
+  proc modpow(b, e, m: U; m_is_power_of_2 = false): U {.gensym.} =
+    # TODO: likely optimizable
+    if m == 1: return 0
+    let mulOverflowsU = not m_is_power_of_2 and (((m - 1).U2 * (m - 1).U2) shr U.n_bits).U > 0
+    result = 1
+    var
+      b = b mod m
+      e = e
+    while e > 0:
+      if e.mod2 == 1:
+        if mulOverflowsU: result = (mul(result, b) mod m.U2).U
+        else:             result = (result * b) mod m
+      e = e.div2
+      b = (b * b) mod m
+  ]#
 
-  proc calc_jump_multiplier[L: static[int]](jmp_wds: array[L, uint]): array[L, U] {.gensym.} =
-    # TODO: produces wrong results, if `multiplier^2` already overflows U
-    for i in 0..<L:
-      result[i] = modpow(multiplier, jmp_wds[i], modulus)
-      #result[i] = 1
-      #for k in 0..<jmp_wds[i]:
-      #  result[i] = modulo_op(result[i] * modulo_op(multiplier))
+  proc calc_jump_multiplier[L: static[int]](jmp_wds: array[L, U]): array[L, U] {.gensym.} =
+    const m = if modulus_is_power_of_2: 1.initBigint shl modulus
+              else: modulus.initBigint
+    for i, jwd in jmp_wds:
+      result[i] = powmod(multiplier.initBigint, jwd.initBigint, m).toInt[:U].get
 
-  proc calc_jump_increment[L: static[int]](jmp_wds, jmp_mult: array[L, uint]): array[L, U] {.gensym.} =
+  proc calc_jump_increment[L: static[int]](jmp_wds: array[L, U]): array[L, U] {.gensym.} =
     when increment == 0:
       return
-    for i in 0..<L:
-      result[i] = 0
+    const m = if modulus_is_power_of_2: 1.initBigint shl modulus
+              else: modulus.initBigint
+    const m2 = m * multiplier.initBigInt
+    for i, jwd in jmp_wds:
+      let
+        nomin = powmod(multiplier.initBigint, jwd.initBigint, m2)
+        fract = nomin div (multiplier - 1).initBigint
+        jincr = (increment.initBigint * fract) mod m
+      result[i] = jincr.toInt[:U].get
 
   const
-    jump_widths: array[4, uint] = [2, 4, 8, 16]
+    jump_widths: array[4, U] = [16, 8, 4, 2] # TODO: move to interface and assert for order
     jump_multiplier = calc_jump_multiplier[4](jump_widths)
-    #jump_increment = calc_jump_increment[4](jump_widths, jump_multiplier)
-  ]#
+    jump_increment = calc_jump_increment[4](jump_widths)
+
 
   # ***** Exported procedures *****
   proc state*(rng: var rngTypeName; state: U) {.inject.} =
@@ -106,9 +127,9 @@ template makeLinearCongruentialGenerator*(
 
   proc max*(rng: rngTypeName): U {.inject, inline.} =
     ## Minimal possible generated random number.
-    when modulus_is_power_of_2 and modulus == U.sizeof * 8:
+    when modulus_is_power_of_2 and modulus == U.n_bits:
       result = U.high
-    elif modulus_is_power_of_2 and modulus < U.sizeof * 8:
+    elif modulus_is_power_of_2 and modulus < U.n_bits:
       result = (1.U shl modulus) - 1
     else:
       result = modulus - 1
