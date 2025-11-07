@@ -18,14 +18,16 @@
 ## :math:`x_{n+1}` on each iteration.
 ##
 
-import std / options
+import std / [options, sequtils, sugar, algorithm]
 import pkg / bigints
-import private / utils
+import private / [utils, arbitraryUint]
 
 template makeLinearCongruentialGenerator*(
       rngTypeName: untyped;
       U: typedesc[SomeUnsignedInt];
+      U2: typedesc[SomeUnsignedInt | object];
       multiplier, increment, modulus: static[U];
+      jump_widths: openArray[U];
       modulus_is_power_of_2 = false;
       bit_range = range[0..0]
       ): untyped =
@@ -38,10 +40,12 @@ template makeLinearCongruentialGenerator*(
   # ***** Static parameter validation *****
   static:
     # if modulus is exponent, m should not exceed Us number of bits
-    assert not modulus_is_power_of_2 or modulus <= U.sizeof * 8
+    assert not modulus_is_power_of_2 or modulus <= U.n_bits
     # bit_range has to stay within Us bit count
-    assert bit_range.low >= 0  and bit_range.low < U.sizeof * 8
-    assert bit_range.high >= 0 and bit_range.high < U.sizeof * 8
+    assert bit_range.low >= 0  and bit_range.low < U.n_bits
+    assert bit_range.high >= 0 and bit_range.high < U.n_bits
+    # jump_widths has to be sorted correctly!
+    assert jump_widths == jump_widths.sorted(SortOrder.Descending)
 
   # ***** Constructed type *****
   type rngTypeName* {.inject.} = object
@@ -57,14 +61,14 @@ template makeLinearCongruentialGenerator*(
       ## Truncate value according to `bit_range`.
       (x shr bit_range.low) and ( (1.U shl bit_range_len) - 1 )
 
-  proc modulo_op(x: U): U {.gensym, inline.} =
+  proc modulo_op[T: U|U2](x: T): U {.gensym, inline.} =
     ## Optimized modulo operation.
     when modulus_is_power_of_2 and modulus == U.n_bits:
-      return x
+      return x.U
     elif modulus_is_power_of_2 and modulus < U.n_bits:
-      return x and ((1.U shl modulus) - 1)
+      return (x and ((1.T shl modulus) - 1)).U
     else:
-      return x mod modulus
+      return (x mod modulus).U
 
   #[ # already slightly optimized version
   proc modpow(b, e, m: U; m_is_power_of_2 = false): U {.gensym.} =
@@ -83,29 +87,28 @@ template makeLinearCongruentialGenerator*(
       b = (b * b) mod m
   ]#
 
-  proc calc_jump_multiplier[L: static[int]](jmp_wds: array[L, U]): array[L, U] {.gensym.} =
+  proc calc_jump_multiplier(jmp_wds: openArray[U]): seq[U] {.gensym.} =
     const m = if modulus_is_power_of_2: 1.initBigint shl modulus
               else: modulus.initBigint
-    for i, jwd in jmp_wds:
-      result[i] = powmod(multiplier.initBigint, jwd.initBigint, m).toInt[:U].get
+    for jwd in jmp_wds:
+      result.add powmod(multiplier.initBigint, jwd.initBigint, m).toInt[:U].get
 
-  proc calc_jump_increment[L: static[int]](jmp_wds: array[L, U]): array[L, U] {.gensym.} =
+  proc calc_jump_increment(jmp_wds: openArray[U]): seq[U] {.gensym.} =
     when increment == 0:
       return
     const m = if modulus_is_power_of_2: 1.initBigint shl modulus
               else: modulus.initBigint
     const m2 = m * multiplier.initBigInt
-    for i, jwd in jmp_wds:
+    for jwd in jmp_wds:
       let
         nomin = powmod(multiplier.initBigint, jwd.initBigint, m2)
         fract = nomin div (multiplier - 1).initBigint
         jincr = (increment.initBigint * fract) mod m
-      result[i] = jincr.toInt[:U].get
+      result.add jincr.toInt[:U].get
 
   const
-    jump_widths: array[4, U] = [16, 8, 4, 2] # TODO: move to interface and assert for order
-    jump_multiplier = calc_jump_multiplier[4](jump_widths)
-    jump_increment = calc_jump_increment[4](jump_widths)
+    jump_multiplier = calc_jump_multiplier(jump_widths)
+    jump_increment = calc_jump_increment(jump_widths)
 
 
   # ***** Exported procedures *****
@@ -138,14 +141,17 @@ template makeLinearCongruentialGenerator*(
 
   proc next*(rng: var rngTypeName): U {.inject.} =
     ## Return next random number.
-    rng.state = modulo_op(multiplier * rng.state + increment)
+    rng.state = modulo_op(multiplier.U2 * rng.state.U2 + increment.U2)
     when use_range_trunc: return trunc(rng.state)
     else:                 return rng.state
 
   proc jump*[P: Positive](rng: var rngTypeName; n: P) {.inject.} =
     ## Jump ahead by `n` values in the current random number stream.
-    ## TODO: Optimize jump ahead. (NOTE: There are some issues left,
-    ##        only (actual or emulated) 128-bit arithmetic can reliably solve!)
+    var n = n
+    for (jwd, jmul, jinc) in zip(jump_widths, jump_multiplier, jump_increment):
+      while n >= jwd:
+        modulo_op(jmul.U2 * rng.state.U2 + jinc.U2) 
+        n -= jwd
     for i in 0..<n:
       discard rng.next()
 
@@ -156,7 +162,16 @@ template makeLinearCongruentialGenerator*(
     result.init(seed)
 
 
-makeLinearCongruentialGenerator(minstd, uint32, 48271'u32, 0'u32, 2147483647'u32)
-makeLinearCongruentialGenerator(rand48, uint64, 25214903917'u64, 11'u64, 48, true)
-makeLinearCongruentialGenerator(rand48r, uint64, 25214903917'u64, 11'u64, 48, true, range[16..47])
+const bit_vals_u32 = collect:
+  for i in countdown(31,1):
+    1.uint32 shl i
+
+const bit_vals_u64 = collect:
+  for i in countdown(63,1):
+    1.uint64 shl i
+
+
+makeLinearCongruentialGenerator(minstd, uint32, uint64, 48271'u32, 0'u32, 2147483647'u32, bit_vals_u32)
+makeLinearCongruentialGenerator(rand48, uint64, uint2x64, 25214903917'u64, 11'u64, 48, bit_vals_u64, true)
+makeLinearCongruentialGenerator(rand48r, uint64, uint2x64, 25214903917'u64, 11'u64, 48, bit_vals_u64, true, range[16..47])
 
