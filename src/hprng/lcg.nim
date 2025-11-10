@@ -70,46 +70,31 @@ template makeLinearCongruentialGenerator*(
     else:
       return (x mod modulus).U
 
-  #[ # already slightly optimized version
-  proc modpow(b, e, m: U; m_is_power_of_2 = false): U {.gensym.} =
-    # TODO: likely optimizable
-    if m == 1: return 0
-    let mulOverflowsU = not m_is_power_of_2 and (((m - 1).U2 * (m - 1).U2) shr U.n_bits).U > 0
-    result = 1
-    var
-      b = b mod m
-      e = e
-    while e > 0:
-      if e.mod2 == 1:
-        if mulOverflowsU: result = (mul(result, b) mod m.U2).U
-        else:             result = (result * b) mod m
-      e = e.div2
-      b = (b * b) mod m
-  ]#
-
-  proc calc_jump_multiplier(jmp_wds: openArray[U]): seq[U] {.gensym.} =
+  proc calc_jump_multiplier(jmp_wds: openArray[U]): seq[U] {.gensym, compileTime.} =
+    ## Calculates multiplier coefficients for desired jump widths
     const m = if modulus_is_power_of_2: 1.initBigint shl modulus
               else: modulus.initBigint
     for jwd in jmp_wds:
       result.add powmod(multiplier.initBigint, jwd.initBigint, m).toInt[:U].get
 
-  proc calc_jump_increment(jmp_wds: openArray[U]): seq[U] {.gensym.} =
+  proc calc_jump_increment(jmp_wds: openArray[U]): seq[U] {.gensym, compileTime.} =
+    ## Calculates increment coefficients for desired jump widths
     when increment == 0:
-      return
-    const m = if modulus_is_power_of_2: 1.initBigint shl modulus
-              else: modulus.initBigint
-    const m2 = m * multiplier.initBigInt
-    for jwd in jmp_wds:
-      let
-        nomin = powmod(multiplier.initBigint, jwd.initBigint, m2)
-        fract = nomin div (multiplier - 1).initBigint
-        jincr = (increment.initBigint * fract) mod m
-      result.add jincr.toInt[:U].get
+      return newSeqWith(jmp_wds.len, 0.U)
+    else:
+      const m = if modulus_is_power_of_2: 1.initBigint shl modulus
+                else: modulus.initBigint
+      const m2 = m * (multiplier - 1).initBigInt
+      for jwd in jmp_wds:
+        let
+          nomin = powmod(multiplier.initBigint, jwd.initBigint, m2) - 1.initBigint
+          fract = nomin div (multiplier - 1).initBigint
+          jincr = (increment.initBigint * fract) mod m
+        result.add jincr.toInt[:U].get
 
   const
-    jump_multiplier = calc_jump_multiplier(jump_widths)
-    jump_increment = calc_jump_increment(jump_widths)
-
+    jump_multiplier {.gensym.} = calc_jump_multiplier(jump_widths)
+    jump_increment {.gensym.} = calc_jump_increment(jump_widths)
 
   # ***** Exported procedures *****
   proc state*(rng: var rngTypeName; state: U) {.inject.} =
@@ -126,7 +111,7 @@ template makeLinearCongruentialGenerator*(
 
   proc min*(rng: rngTypeName): U {.inject, inline.} =
     ## Minimal possible generated random number.
-    return U.low
+    return if increment == 0: 1 else: 0
 
   proc max*(rng: rngTypeName): U {.inject, inline.} =
     ## Minimal possible generated random number.
@@ -147,10 +132,10 @@ template makeLinearCongruentialGenerator*(
 
   proc jump*[P: Positive](rng: var rngTypeName; n: P) {.inject.} =
     ## Jump ahead by `n` values in the current random number stream.
-    var n = n
-    for (jwd, jmul, jinc) in zip(jump_widths, jump_multiplier, jump_increment):
+    var n = n.BiggestUint
+    for i, jwd in jump_widths:
       while n >= jwd:
-        modulo_op(jmul.U2 * rng.state.U2 + jinc.U2) 
+        rng.state = modulo_op(jump_multiplier[i].U2 * rng.state.U2 + jump_increment[i].U2)
         n -= jwd
     for i in 0..<n:
       discard rng.next()
@@ -166,12 +151,16 @@ const bit_vals_u32 = collect:
   for i in countdown(31,1):
     1.uint32 shl i
 
+const bit_vals_u48 = collect:
+  for i in countdown(47,1):
+    1.uint64 shl i
+
 const bit_vals_u64 = collect:
   for i in countdown(63,1):
     1.uint64 shl i
 
 
-makeLinearCongruentialGenerator(minstd, uint32, uint64, 48271'u32, 0'u32, 2147483647'u32, bit_vals_u32)
-makeLinearCongruentialGenerator(rand48, uint64, uint2x64, 25214903917'u64, 11'u64, 48, bit_vals_u64, true)
-makeLinearCongruentialGenerator(rand48r, uint64, uint2x64, 25214903917'u64, 11'u64, 48, bit_vals_u64, true, range[16..47])
+makeLinearCongruentialGenerator(Minstd, uint32, uint64, 48271'u32, 0'u32, 2147483647'u32, bit_vals_u32)
+makeLinearCongruentialGenerator(Rand48, uint64, uint2x64, 25214903917'u64, 11'u64, 48, bit_vals_u48, true)
+makeLinearCongruentialGenerator(Rand48r, uint64, uint2x64, 25214903917'u64, 11'u64, 48, bit_vals_u48, true, range[16..47])
 
