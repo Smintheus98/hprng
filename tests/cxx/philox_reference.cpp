@@ -2,16 +2,15 @@
  * compile with:
  *      `g++ philox_reference.cpp -o ./philox_reference-<OS>_<arch>.exe -I /path/to/random123/include/`
  */
-#include <Random123/philox.h>
 #include <iostream>
 #include <fstream>
+#include <Random123/philox.h>
+#include "common.h"
 
 const int gen_n = 16;
 
 
 int main(int, char **) {
-    uint32_t xmpl_vals32[] = { 0xdeadbeefU, 0xbeadcafeU, 0x12345678U, 0x90abcdefU, 0xdecafbadU, 0xdef94c5aU, 0x44556677U };
-    uint64_t xmpl_vals64[] = { 0xdeadbeef12345678, 0xdecafbadbeadfeed, 0x8877dd99aa33cc55, 0xbeaea921ab02beef, 0x6f5d422512844f22, 0xad2f6ebd38736225, 0x677b7461a6e523ed };
 
     // Test cases:
     //      Philox2x32
