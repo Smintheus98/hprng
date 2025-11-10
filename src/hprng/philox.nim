@@ -182,10 +182,11 @@ template makePhiloxType*(
   proc jump*[P: Positive](rng: var rngTypeName; n: P) {.inject.} =
     ## Jump ahead by `n` values in the current random number stream.
     # TODO: fix instabilities
-    let increment = ((n + rng.output_it.P) div n_words).uint
+    let n = n.BiggestUint
+    let increment = ((n + rng.output_it) div n_words).uint
     if increment > 0:
       incCtrAndGenOutput(rng, increment)
-    rng.output_it = ((n + rng.output_it.P) mod n_words).uint8
+    rng.output_it = ((n + rng.output_it) mod n_words).uint8
 
   proc init*(rng: var rngTypeName; seed: varargs[U]) {.inject.} =
     rng.seed(seed)
