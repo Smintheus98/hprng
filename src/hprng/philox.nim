@@ -153,7 +153,7 @@ template makePhiloxType*(
     ## For most use cases `jump()` is to be prefered!
     rng.output_it = offset.uint8
 
-  proc seed*(rng: var rngTypeName; seeds: varargs[U]; resetOutputIt = true) {.inject.} =
+  proc seed*(rng: var rngTypeName; seeds: varargs[U, U]; resetOutputIt = true) {.inject.} =
     ## Type generic seed setter.
     ## Internaly `key` is used as seed.
     rng.key = rng.key.typeof.default
@@ -188,10 +188,10 @@ template makePhiloxType*(
       incCtrAndGenOutput(rng, increment)
     rng.output_it = ((n + rng.output_it) mod n_words).uint8
 
-  proc init*(rng: var rngTypeName; seed: varargs[U]) {.inject.} =
+  proc init*(rng: var rngTypeName; seed: varargs[U, U]) {.inject.} =
     rng.seed(seed)
 
-  proc `init rngTypeName`*(seed: varargs[U]): rngTypeName {.inject.} =
+  proc `init rngTypeName`*(seed: varargs[U, U]): rngTypeName {.inject.} =
     result.init(seed)
 
 

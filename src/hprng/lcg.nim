@@ -102,7 +102,7 @@ template makeLinearCongruentialGenerator*(
     ## The state is used to seed the next random number genaration, which becomes the next state.
     rng.state = state
 
-  proc seed*(rng: var rngTypeName; seeds: varargs[U]) {.inject.} =
+  proc seed*(rng: var rngTypeName; seeds: varargs[U, U]) {.inject.} =
     ## Type generic seed setter.
     ## Internaly `state` is used as seed.
     rng.state = 1
@@ -140,10 +140,10 @@ template makeLinearCongruentialGenerator*(
     for i in 0..<n:
       discard rng.next()
 
-  proc init*(rng: var rngTypeName; seed: varargs[U]) {.inject.} =
+  proc init*(rng: var rngTypeName; seed: varargs[U, U]) {.inject.} =
     rng.seed(seed)
 
-  proc `init rngTypeName`*(seed: varargs[U]): rngTypeName {.inject.} =
+  proc `init rngTypeName`*(seed: varargs[U, U]): rngTypeName {.inject.} =
     result.init(seed)
 
 
