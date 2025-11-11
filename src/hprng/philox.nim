@@ -8,7 +8,70 @@
 
 ##
 ## hprng - philox random number generator
+## ======================================
+## 
+## About Philox
+## ------------
+## 
+## Philox is one of the counter-based random number generators (CBRNG) as proposed in the paper
+## *"Parallel random numbers: as easy as 1, 2, 3"* published in 2011.
+## The internal state of these PRNGs mainly consists of a counter variable (where the term
+## counter-based comes from), usually constructed from two or four single values and a key variable
+## (usually one or two values).
+## CBRNGs in general are inspired by cryptographic methods, however weakened for better performance,
+## while still providing good statistical properties.
+## These generators however are **not considered cryptographically secure** anymore!
+## 
+## 
+## Implementation
+## --------------
+## 
+## This implementation provides the common versions of the Philox pseudo-random number generator
+## (PRNG) as implemented in the original Random123 library.
+## - `Philox2x32_10`
+## - `Philox2x64_10`
+## - `Philox4x32_10`
+## - `Philox4x64_10`
 ##
+## They respectively consist of a counter of two or four 32/64-bit values, using ten bit-scrambling
+## iterations for the output function.
+## Additional Philox types can be constructed using the `makePhiloxType`_ template factory.
+## 
+## The key, playing a relevant role in the output function, here also is used for seeding.
+## 
+## 
+## State transition and output function
+## ------------------------------------
+## 
+## The state transition of a CBRNG simply consists of a counter increment, while the output function
+## is based on a repetitive bit-scrambling algorithm on top of the counter.
+## For Philox that bit-scrambling includes a multiplication operation.
+## 
+## 
+## Parallelization
+## ---------------
+## 
+## Since the state transition of these generators are so simple, the jump ahead procedure for this
+## class of generators is exceptionally simple.
+## A jump by `k` states equals an increment of the internal counter by `k`.
+## The only thing to note here is, that one state provides, depending in its size, two or four
+## output values, which however is taken care of, internally.
+##
+## Beside this substream approach to parallelization and in contrast to most other PRNGs, CBRNGs
+## also provide an equally independent multistream approach by choosing different keys which here
+## also function as random seeds.
+## 
+## 
+## Quality
+## -------
+## 
+## The Random123 paper shows that this generator passes the most extensive test suite for PRNGs:
+## TestU01 without any failures.
+## 
+## 
+## Reference
+## ---------
+## 
 ## This implementation was based on the Random123 library which can be found at
 ## https://random123.com/, respectively https://github.com/DEShawResearch/random123
 ##

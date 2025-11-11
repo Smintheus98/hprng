@@ -8,14 +8,75 @@
 
 ##
 ## hprng - Linear Congruential Generator (LCG) random number generator family
+## ==========================================================================
+## 
+## About LCGs
+## ------------
+## 
+## The LCG is a rather simple and already quite old PRNG, that is still widely used, even though its
+## statistical properties are rather limited and it tends to form hyperplanes.
+## This might be because this generator is fast, easy to implement and has a very small state.
 ##
 ## The classic Linear Congruential Generator is formally defined using the following recurrence:
-## .. math::
-##    x_{n+1} = (a * x_n + c) \mod m
+## 
+##     X(n+1) = (a * X(n) + c) mod m
+## 
 ## with parameters a, c and m, also called multiplier, increment and modulus.
+## 
+## Starting with an initial seed `X(0)`, this formula delivers a new pseudo-random number
+## `X(n+1)` on each iteration.
+## 
 ##
-## Starting with an initial seed :math:`x_0`, this formula delivers a new pseudo-random number
-## :math:`x_{n+1}` on each iteration.
+## Implementation
+## --------------
+## 
+## Here implemented are the following generators:
+## - `Minstd`
+## - `Rand48`
+## - `Rand48r`
+##
+## Which are common LCG implementations.
+## However this list is obviously not very extensive.
+## Other possibly desired LCG implementations can be created using the
+## `makeLinearCongruentialGenerator`_ template factory.
+## 
+## 
+## State transition and output function
+## ------------------------------------
+## 
+## The internal state simply consists of the last generated random number, which also represents the
+## output function.
+## 
+## 
+## Parallelization
+## ---------------
+## 
+## Even though the state transition is so simple, it is a formula of recurrence, iterating on which
+## does not bring much additional performance.
+## However using modulo arithmetics we can get a closed formula for a `k`-step iteration.
+## 
+##     X(n+k) = (a^k * X(n) + c * sum(j=0..k-1, a^j)) mod m
+##            = (a^k * X(n) + c * (a^k - 1) / (a - 1)) mod m
+## 
+## Mathematically this is a nice solution, however it still poses some computational problems.
+## For original 64-bit coefficients the `k`-step coefficient `a(k) := a^k mod m` potentially
+## requires full 128 bit multiplication and the
+## `c(k) := c * (a^k - 1) / (a - 1) mod m = c * (a^k mod (a-1)m - 1) / (a - 1) mod m` coefficient
+## potentially requires full 256 bit multiplication.
+## For that reason the coefficients are calculated using bigints package.
+## 
+## For fast application, the coefficients for base-2 jumps are precalculated at compile time and
+## combined as required at runtime.
+## 
+## 
+## Quality
+## -------
+## 
+## Depending on the actual parameters the quality of the generator varies a lot.
+## Most don't even pass the TestU01's SmallCrush suite, while some are able to pass TestU01's
+## BigCrush suite without failure.
+## When choosing a LCG generator one should take care, that it provides full period `m` and does not
+## tend to form too few hyperplanes.
 ##
 
 import std / [options, sequtils, sugar, algorithm]
