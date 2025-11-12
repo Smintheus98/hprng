@@ -76,6 +76,7 @@
 ## https://random123.com/, respectively https://github.com/DEShawResearch/random123
 ##
 
+import pkg / unroll
 import private/utils
 
 type LoHiUint*[U: SomeUnsignedInt] = tuple
@@ -144,21 +145,25 @@ template makePhiloxType*(
 
   # ***** Internal procedures *****
   proc bumpKey(key: array[n_words div 2, U]): array[n_words div 2, U] {.gensym, inline.} =
-    for i in 0..<key.len: # TODO: unroll
-      result[i] = key[i] + round_consts[i]
+    var res: array[n_words div 2, U]
+    for i in unroll(0..<n_words.div2):
+      res[i] = key[i] + round_consts[i]
+    return res
 
   proc iterateState(ctr: array[n_words, U]; key: array[n_words div 2, U]): array[n_words, U] {.gensym, inline.} =
-    for i in 0..<n_words.div2: # TODO: unroll
-      let r = n_words.div2 - 1 - i
-      let (lo, hi) = mul(ctr[2*i], multipliers[i])
-      result[2*r]   = hi xor ctr[2*r+1] xor key[r]
-      result[2*r+1] = lo
+    var res: array[n_words, U]
+    for i in unroll(0..<n_words.div2):
+      const r = n_words.div2 - 1 - i
+      let (lo, hi) = mul(ctr[static(2*i)], multipliers[i])
+      res[static(2*r)]   = hi xor ctr[static(2*r+1)] xor key[r]
+      res[static(2*r+1)] = lo
+    return res
 
   proc genOutputBuffer(rng: var rngTypeName) {.gensym.} =
     var
       ctr = rng.counter
       key = rng.key
-    for i in 0..<(rounds.pred): # TODO: unroll
+    for i in unroll(0..<(rounds.pred)):
       ctr = iterateState(ctr, key)
       key = bumpKey(key)
     ctr = iterateState(ctr, key)
@@ -172,22 +177,22 @@ template makePhiloxType*(
     elif V.sizeof > U.sizeof and (n shr u_bit_width > 0):
       # careful increment
       var n = n
-      for i in 0..<n_words: # TODO: unroll
+      for i in unroll(0..<n_words):
         rng.counter[i].inc n.U
         if unlikely(rng.counter[i] < n.U):
           n += 1.V shl u_bit_width
         n = n shr u_bit_width
         if n == 0:
-          break
+          return
     else:
       # straight forward increment
       rng.counter[0].inc n.U
       if likely(rng.counter[0] >= n.U):
         return
-      for i in 1..<n_words: # TODO: unroll
+      for i in unroll(1..<n_words):
         rng.counter[i].inc  # under the checked conditions the carry can not be bigger than 1
         if likely(rng.counter[i] != 0.U):
-          break
+          return
 
   proc incCtrAndGenOutput[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym.} =
     incCtr(rng, n)

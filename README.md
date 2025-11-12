@@ -24,7 +24,7 @@ Aside of the generic creation of different generators of one kind, this approach
 | RNG type | Status | Jump complexity best/avg/worst | Parallelization approach | Implementations | Pending optimizations |
 | - | :-: | :-: | :-: | - | - |
 | LCG | complete | $O(1)/O(\log(n))/O(\log(n))$ | substream | Minstd, Rand48, Rand48r, ... | Remove external bigints dependency, optimize for special cases ($m=2^x$)|
-| Philox | complete | $O(1)/O(1)/O(1)$ | substream, multistream | Philox2x32_10, Philox2x64_10, Philox4x32_10, Philox4x64_10 | For-loop unroll |
+| Philox | complete | $O(1)/O(1)/O(1)$ | substream, multistream | Philox2x32_10, Philox2x64_10, Philox4x32_10, Philox4x64_10 | Remove external unroll dependency |
 
 ## planned PRNGs
 - [ ] RNG base concept

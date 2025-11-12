@@ -11,3 +11,4 @@ srcDir        = "src"
 
 requires "nim >= 2.2.4"
 requires "bigints >= 1.0.0"
+requires "unroll >= 0.1.1"
