@@ -19,6 +19,13 @@ This concept makes it easy to pass different generators to e.g. a single procedu
 The actual generators are defined using factory templates per generator kind.
 Aside of the generic creation of different generators of one kind, this approach promises some compile time optimization like parameter substitution.
 
+## Implemented RNGs
+
+| RNG type | Status | Jump complexity best/avg/worst | Parallelization approach | Implementations | Pending optimizations |
+| - | :-: | :-: | :-: | - | - |
+| LCG | complete | $O(1)/O(\log(n))/O(\log(n))$ | substream | Minstd, Rand48, Rand48r, ... | Remove external bigints dependency, optimize for special cases ($m=2^x$)|
+| Philox | complete | $O(1)/O(1)/O(1)$ | substream, multistream | Philox2x32_10, Philox2x64_10, Philox4x32_10, Philox4x64_10 | For-loop unroll |
+
 ## planned PRNGs
 - [ ] RNG base concept
 - [ ] CBRNGs (counter based)
@@ -27,9 +34,9 @@ Aside of the generic creation of different generators of one kind, this approach
 - [ ] Mersenne Twister
   - [ ] mt19937
 - [ ] WELL
-- [ ] LCG
-  - [ ] fib-lagged
-  - [ ] shuffled
+- [x] LCG
+- [ ] fib-lagged
+- [ ] shuffled
 - [ ] PCG
 - [ ] L'Ecuyer CMRG
 - [ ] Xorshift-family
