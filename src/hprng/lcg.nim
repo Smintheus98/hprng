@@ -131,6 +131,13 @@ template makeLinearCongruentialGenerator*(
     else:
       return (x mod modulus).U
 
+  proc iterate(a, x, c: U): U {.gensym, inline.} =
+    ## Optimized iteration.
+    when modulus_is_power_of_2:
+      modulo_op(a * x + c)
+    else:
+      modulo_op(a.U2 * x.U2 + c.U2)
+
   proc calc_jump_multiplier(jmp_wds: openArray[U]): seq[U] {.gensym, compileTime.} =
     ## Calculates multiplier coefficients for desired jump widths
     const m = if modulus_is_power_of_2: 1.initBigint shl modulus
@@ -187,7 +194,7 @@ template makeLinearCongruentialGenerator*(
 
   proc next*(rng: var rngTypeName): U {.inject.} =
     ## Return next random number.
-    rng.state = modulo_op(multiplier.U2 * rng.state.U2 + increment.U2)
+    rng.state = iterate(multiplier, rng.state, increment)
     when use_range_trunc: return trunc(rng.state)
     else:                 return rng.state
 
@@ -196,7 +203,7 @@ template makeLinearCongruentialGenerator*(
     var n = n.BiggestUint
     for i, jwd in jump_widths:
       while n >= jwd:
-        rng.state = modulo_op(jump_multiplier[i].U2 * rng.state.U2 + jump_increment[i].U2)
+        rng.state = iterate(jump_multiplier[i], rng.state, jump_increment[i])
         n -= jwd
     for i in 0..<n:
       discard rng.next()
