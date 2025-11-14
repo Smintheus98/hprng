@@ -30,7 +30,7 @@ Aside of the generic creation of different generators of one kind, this approach
 \* recommended RNGs
 
 ### Notes
-The following notes on performance were drawn from a simple bootstrap use case, performing a statistical test on a subset of pregenerated data.
+The following notes on performance were drawn from a simple bootstrap use case, performing a statistical test on a subset of pre-generated data.
 The benchmarking program has been compiled with `-d:release`, `-d:useMalloc` and `-mm:arc` flags, of which at least the first one is expected to be set for real-world use cases.
 
 - Sequential performance:
