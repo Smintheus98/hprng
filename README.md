@@ -1,7 +1,7 @@
 # hprng
 A library for high-performance (pseudo-)random number generation fit for highly parallel applications.
 
-This library provides a collection of powerful and well established pseudorandom number generators (PRNGs) all of which implement some form of advanced jump-ahead algorithm (sub-stream partitioning) or equivalent multi-stream algorithm to allow generation of independent and non-overlapping pseudorandom number streams.
+This library provides a collection of powerful and well established pseudorandom number generators (PRNGs) all of which implement some form of advanced **jump-ahead algorithm** (sub-stream partitioning) or equivalent multi-stream algorithm to allow generation of **independent and non-overlapping** pseudo-random number streams.
 These algorithms are especially useful in a parallel context as usually found in scientific computing (e.g. Monte Carlo simulations, statistical bootstrap, etc.).
 
 Eventually hardware vectorization of the PRNGs are considered.
@@ -11,10 +11,10 @@ ATTENTION: This library does not provide cryptographically secure random number 
 WARNING: This library is under heavy development! Use at own risk!
 
 ### Structure
-In contrast to the classic object oriented approach this library tries to reduce runtime resolutions and thus does not make use of methods.
+In contrast to the classic object oriented approach this library tries to reduce runtime resolutions and thus does not make use of methods(/dynamic dispatch).
 
 Instead the different generators are covered by a concept, which requires a generator to provide procedures to set the seed, get the minimal, maximal and next random number and to jump ahead in the generator state.
-This concept makes it easy to pass different generators to e.g. a single procedure.
+This concept makes it easy to pass different generators to e.g. a single procedure delivering random numbers of a specific distribution.
 
 The actual generators are defined using factory templates per generator kind.
 Aside of the generic creation of different generators of one kind, this approach promises some compile time optimization like parameter substitution.
@@ -23,10 +23,27 @@ Aside of the generic creation of different generators of one kind, this approach
 
 | RNG type | Status | Jump complexity best/avg/worst | Parallelization approach | Implementations | Pending optimizations |
 | - | :-: | :-: | :-: | - | - |
-| LCG | complete | $O(1)/O(\log(n))/O(\log(n))$ | substream | Minstd, Rand48, Rand48r, ... | Remove external bigints dependency |
+| LCG | complete | $O(1)/O(\log(n))/O(\log(n))$ | substream | Minstd, Rand48, *Rand48r, ... | Remove external bigints dependency |
+| PCG | Not started yet | - | substream | - |  |
 | Philox | complete | $O(1)/O(1)/O(1)$ | substream, multistream | Philox2x32_10, Philox2x64_10, *Philox4x32_10, Philox4x64_10 | Remove external unroll dependency |
 
 \* recommended RNGs
+
+### Notes
+The following notes on performance were drawn from a simple bootstrap use case, performing a statistical test on a subset of pregenerated data.
+The benchmarking program has been compiled with `-d:release`, `-d:useMalloc` and `-mm:arc` flags, of which at least the first one is expected to be set for real-world use cases.
+
+- Sequential performance:
+  - Minstd and Rand48r, followed by the other LCG implementation, provides the best sequential performance. (Even compared to other RNG libraries!)
+  - Philox type generators are (as of now) significantly slower than LCG type generators.
+    Of these Philox4x32 and Philox2x32 are the fastest, again by a significantly margin, compared to Philox2x64 and Philox2x64.
+- Parallel performance
+  - *not yet tested!*
+<!-- TODO: perform parallel tests -->
+- Statistical properties:
+  - All Philox generators (especially the 4x variants) have great statistical properties, including no fails in TestU01 and Periods of up to $4 \cdot 2^{256 + 128}$ random values.
+  - LCG type generators mostly perform significantly worse on that matter: some fails in TestU01 and a period of merely $2^{48}$, respectively $2^{31} - 2$
+<!-- TODO: actually perform TestU01 on the generators -->
 
 ## planned PRNGs
 - [ ] RNG base concept
