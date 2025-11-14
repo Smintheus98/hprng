@@ -159,7 +159,7 @@ template makePhiloxType*(
       res[static(2*r+1)] = lo
     return res
 
-  proc genOutputBuffer(rng: var rngTypeName) {.gensym.} =
+  proc genOutputBuffer(rng: var rngTypeName) {.gensym, inline.} =
     var
       ctr = rng.counter
       key = rng.key
@@ -169,22 +169,24 @@ template makePhiloxType*(
     ctr = iterateState(ctr, key)
     rng.output_buffer = ctr
 
-  proc incCtr[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym.} =
+  proc incCtr[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym, inline.} =
     ## Increment internal counter by `n`, resulting in a jump of `n`*`n_words` output values
     const u_bit_width = U.n_bits
     if n == 0:
       return
-    elif V.sizeof > U.sizeof and (n shr u_bit_width > 0):
-      # careful increment
-      var n = n
-      for i in unroll(0..<n_words):
-        rng.counter[i].inc n.U
-        if unlikely(rng.counter[i] < n.U):
-          n += 1.V shl u_bit_width
-        n = n shr u_bit_width
-        if n == 0:
-          return
     else:
+      when V.sizeof > U.sizeof:
+        if (n shr u_bit_width > 0):
+          # careful increment
+          var n = n
+          for i in unroll(0..<n_words):
+            rng.counter[i].inc n.U
+            if unlikely(rng.counter[i] < n.U):
+              n += 1.V shl u_bit_width
+            n = n shr u_bit_width
+            if n == 0:
+              return
+          return
       # straight forward increment
       rng.counter[0].inc n.U
       if likely(rng.counter[0] >= n.U):
@@ -194,7 +196,7 @@ template makePhiloxType*(
         if likely(rng.counter[i] != 0.U):
           return
 
-  proc incCtrAndGenOutput[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym.} =
+  proc incCtrAndGenOutput[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym, inline.} =
     incCtr(rng, n)
     genOutputBuffer(rng)
 
