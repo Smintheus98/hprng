@@ -171,11 +171,11 @@ template makePhiloxType*(
 
   proc incCtr[V: SomeUnsignedInt](rng: var rngTypeName; n: V = 1.U) {.gensym, inline.} =
     ## Increment internal counter by `n`, resulting in a jump of `n`*`n_words` output values
-    const u_bit_width = U.n_bits
     if n == 0:
       return
     else:
       when V.sizeof > U.sizeof:
+        const u_bit_width = U.n_bits
         if (n shr u_bit_width > 0):
           # careful increment
           var n = n
