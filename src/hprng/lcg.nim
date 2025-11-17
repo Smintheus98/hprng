@@ -93,8 +93,8 @@ template makeLinearCongruentialGenerator*(
       bit_range = range[0..0]
       ): untyped =
   ## Template factory to generate LCG generators.
-  ## If the `modulus_is_power_of_2` flag is set, the `modulus` parameter is interpretet as the
-  ## coresponding exponent instead of the actual modulus.
+  ## If the `modulus_is_power_of_2` flag is set, the `modulus` parameter is interpreted as the
+  ## corresponding exponent instead of the actual modulus.
   ## This opens some opportunities to optimize the calculations.
   # Inject/gensym pragmas are used explicitly here for clarification!
 
@@ -167,12 +167,12 @@ template makeLinearCongruentialGenerator*(
   # ***** Exported procedures *****
   proc state*(rng: var rngTypeName; state: U) {.inject.} =
     ## State setter.
-    ## The state is used to seed the next random number genaration, which becomes the next state.
+    ## The state is used to seed the next random number generation, which becomes the next state.
     rng.state = state
 
   proc seed*(rng: var rngTypeName; seeds: varargs[U, U]) {.inject.} =
     ## Type generic seed setter.
-    ## Internaly `state` is used as seed.
+    ## Internally `state` is used as seed.
     rng.state = 1
     if seeds.len >= 1:
       rng.state = seeds[0]
