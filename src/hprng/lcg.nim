@@ -88,7 +88,7 @@ template makeLinearCongruentialGenerator*(
       U: typedesc[SomeUnsignedInt];
       U2: typedesc[SomeUnsignedInt | object];
       multiplier, increment, modulus: static[U];
-      jump_widths: openArray[U];
+      jump_widths: static[openArray[U]];
       modulus_is_power_of_2 = false;
       bit_range = range[0..0]
       ): untyped =
@@ -215,15 +215,15 @@ template makeLinearCongruentialGenerator*(
     result.init(seed)
 
 
-const bit_vals_u32 = collect:
+const bit_vals_u32 {.hint[XDeclaredButNotUsed]: off.} = collect:
   for i in countdown(31,1):
     1.uint32 shl i
 
-const bit_vals_u48 = collect:
+const bit_vals_u48 {.hint[XDeclaredButNotUsed]: off.} = collect:
   for i in countdown(47,1):
     1.uint64 shl i
 
-const bit_vals_u64 = collect:
+const bit_vals_u64 {.hint[XDeclaredButNotUsed]: off.} = collect:
   for i in countdown(63,1):
     1.uint64 shl i
 
@@ -231,4 +231,3 @@ const bit_vals_u64 = collect:
 makeLinearCongruentialGenerator(Minstd, uint32, uint64, 48271'u32, 0'u32, 2147483647'u32, bit_vals_u32)
 makeLinearCongruentialGenerator(Rand48, uint64, uint2x64, 25214903917'u64, 11'u64, 48, bit_vals_u48, true)
 makeLinearCongruentialGenerator(Rand48r, uint64, uint2x64, 25214903917'u64, 11'u64, 48, bit_vals_u48, true, range[16..47])
-
