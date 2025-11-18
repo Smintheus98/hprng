@@ -24,7 +24,7 @@ Aside of the generic creation of different generators of one kind, this approach
 | RNG type | Status | Jump complexity best/avg/worst | Parallelization approach | Implementations | Pending optimizations |
 | - | :-: | :-: | :-: | - | - |
 | LCG | complete | $O(1)/O(\log(n))/O(\log(n))$ | substream | Minstd, Rand48, *Rand48r, ... | Remove external bigints dependency |
-| PCG | Not started yet | - | substream | - |  |
+| PCG | WIP | - | substream | - |  |
 | Philox | complete | $O(1)/O(1)/O(1)$ | substream, multistream | Philox2x32_10, Philox2x64_10, *Philox4x32_10, Philox4x64_10 | Remove external unroll dependency |
 
 \* recommended RNGs
@@ -38,7 +38,7 @@ The benchmarking program has been compiled with `-d:release -d:useMalloc --mm:ar
   - Philox type generators are (as of now) significantly slower than LCG type generators.
     Of these Philox4x32 and Philox2x32 are the fastest, again by a significantly margin, compared to Philox2x64 and Philox2x64.
 - Parallel performance
-  - *not yet tested!*
+  - *not tested, yet!*
 <!-- TODO: perform parallel tests -->
 - Statistical properties:
   - All Philox generators (especially the 4x variants) have great statistical properties, including no fails in TestU01 and Periods of up to $4 \cdot 2^{256 + 128}$ random values.
@@ -59,3 +59,4 @@ The benchmarking program has been compiled with `-d:release -d:useMalloc --mm:ar
 - [ ] PCG
 - [ ] L'Ecuyer CMRG
 - [ ] Xorshift-family
+- [ ] Splitmix
